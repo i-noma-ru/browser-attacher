@@ -1,0 +1,12 @@
+{
+  "name": "browser-attacher",
+  "version": "1.0.0",
+  "description": "A local drop page that hands files to a Claude Code session through inbox/.ready",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "node start.js",
+    "stop": "node stop.js",
+    "test": "node --test test_server.js"
+  }
+}
