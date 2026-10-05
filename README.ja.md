@@ -99,10 +99,10 @@ while true; do if [ -f inbox/.ready ]; then cat inbox/.ready; echo ""; rm inbox/
 ## テスト
 
 ```sh
-node --test test_server.js
+node --test test_server.js test_stop.js
 ```
 
-一時フォルダを作業フォルダにして、空いているローカルのポートで実際にサーバーを起動して確かめます。
+一時フォルダを作業フォルダにして、空いているローカルのポートで実際にサーバーを起動して確かめます。`test_stop.js` はサーバーを 2 つ起動し、`stop.js` が指定したポートの 1 つだけを止めること、別のプロセスが使っているポートには手を出さないことを確かめます（Windows では飛ばします）。
 
 ## 補足
 

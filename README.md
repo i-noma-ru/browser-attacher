@@ -99,10 +99,10 @@ To define your own, copy `modes.example.json`, edit it, and pass it with `--mode
 ## Tests
 
 ```sh
-node --test test_server.js
+node --test test_server.js test_stop.js
 ```
 
-The tests start a real server on a free local port in a temporary folder.
+The tests start a real server on a free local port in a temporary folder. `test_stop.js` starts two servers and checks that `stop.js` stops only the one on the given port, and leaves a port held by another process alone (skipped on Windows).
 
 ## Notes
 

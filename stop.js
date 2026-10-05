@@ -1,35 +1,41 @@
 "use strict";
-// このフォルダの server.js を止め、応答が無くなるまで確かめる。使い方: node stop.js [--port 8931]
+// 指定したポートで動いている、このフォルダの server.js だけを止める。使い方: node stop.js [--port 8931]
+// 終了コード: 0=止めた・既に停止 / 1=別のプロセスがポートを使っている・止められなかった
 
 const { spawnSync } = require("child_process");
 const path = require("path");
 
-// start.js は server.js を絶対パスで起動するので、そのパスでプロセスを探す
+// start.js は server.js を絶対パスで起動するので、コマンドラインにこのパスが入る
 const SERVER = path.join(__dirname, "server.js");
 
 const portIndex = process.argv.indexOf("--port");
 const port = portIndex === -1 ? 8931 : parseInt(process.argv[portIndex + 1], 10);
 const url = `http://127.0.0.1:${port}/health`;
-const windowsFilter = "$p = Get-CimInstance Win32_Process -Filter \"Name LIKE 'node%'\" | Where-Object { $_.CommandLine -like '*browser-attacher*server.js*' };";
 
-function outputLines(result) {
-  const output = String(result.stdout || "").trim();
-  return output ? output.split(/\r?\n/).length : 0;
-}
-
-function runningCount() {
+function commandForPid(pid) {
   if (process.platform === "win32") {
-    return outputLines(spawnSync("powershell", ["-NoProfile", "-Command", `${windowsFilter} $p | Select-Object -ExpandProperty ProcessId`], { encoding: "utf8" }));
+    const script = `(Get-CimInstance Win32_Process -Filter "ProcessId = ${pid}").CommandLine`;
+    return String(spawnSync("powershell", ["-NoProfile", "-Command", script], { encoding: "utf8" }).stdout || "").trim();
   }
-  return outputLines(spawnSync("pgrep", ["-f", SERVER], { encoding: "utf8" }));
+  return String(spawnSync("ps", ["-o", "command=", "-p", String(pid)], { encoding: "utf8" }).stdout || "").trim();
 }
 
-function stopServers() {
+function listeningPids() {
   if (process.platform === "win32") {
-    spawnSync("powershell", ["-NoProfile", "-Command", `${windowsFilter} $p | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }`], { encoding: "utf8" });
+    const output = String(spawnSync("netstat", ["-ano"], { encoding: "utf8" }).stdout || "");
+    const pattern = new RegExp(`^\\s*TCP\\s+\\S*:${port}\\s+\\S+\\s+LISTENING\\s+(\\d+)\\s*$`, "gim");
+    return [...new Set([...output.matchAll(pattern)].map((match) => Number(match[1])))];
+  }
+  const output = String(spawnSync("lsof", ["-nP", `-tiTCP:${port}`, "-sTCP:LISTEN"], { encoding: "utf8" }).stdout || "");
+  return [...new Set(output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map(Number).filter(Number.isInteger))];
+}
+
+function stop(pid) {
+  if (process.platform === "win32") {
+    spawnSync("powershell", ["-NoProfile", "-Command", `Stop-Process -Id ${pid} -Force`], { encoding: "utf8" });
     return;
   }
-  spawnSync("pkill", ["-f", SERVER]);
+  process.kill(pid, "SIGTERM");
 }
 
 async function down() {
@@ -46,22 +52,34 @@ function sleep(ms) {
 }
 
 async function main() {
-  const count = runningCount();
-  if (count === 0) {
+  const pids = listeningPids();
+  if (pids.length === 0) {
     console.log("既に停止しています（受付サーバーは動いていません）");
     return;
   }
 
-  stopServers();
+  const targets = pids.filter((pid) => commandForPid(pid).includes(SERVER));
+  if (targets.length === 0) {
+    console.error(`ポート ${port} は別のプロセス（PID ${pids.join(", ")}）が使っています。止めません`);
+    process.exitCode = 1;
+    return;
+  }
+
+  try {
+    for (const pid of targets) stop(pid);
+  } catch {
+    // 止まったかどうかは、下の応答の確認で決める
+  }
+
   for (let i = 0; i < 10; i += 1) {
     await sleep(300);
     if (await down()) {
-      console.log(`受付を終了しました（${count} 件停止）`);
+      console.log("受付を終了しました");
       return;
     }
   }
 
-  console.log("停止できませんでした（まだ応答しています）");
+  console.error("停止できませんでした（まだ応答しています）");
   process.exitCode = 1;
 }
 

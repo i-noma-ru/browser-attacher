@@ -7,6 +7,6 @@
   "scripts": {
     "start": "node start.js",
     "stop": "node stop.js",
-    "test": "node --test test_server.js"
+    "test": "node --test test_server.js test_stop.js"
   }
 }
