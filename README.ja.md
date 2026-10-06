@@ -94,7 +94,7 @@ while true; do if [ -f inbox/.ready ]; then cat inbox/.ready; echo ""; rm inbox/
 | GET | `/health` | `{"ok": true, "version": "..."}` |
 | POST | `/upload?kind=<image\|pptx\|pdf\|file>&name=<ファイル名>` | ボディはファイルの生バイナリ（multipart ではありません）。`{"ok": true, "saved": "<相対パス>"}` を返します |
 | POST | `/reset` | ボディなし。`inbox/images/` と `inbox/files/` を空にします。どちらかがシンボリックリンクなら断ります |
-| POST | `/go` | JSON `{"mode","pptx","pdfs","images","files"}`。`inbox/.ready` を書き、`{"ok": true, "prompt": "..."}` を返します |
+| POST | `/go` | `mode`・`pptx`・`pdfs`・`images`・`files` をキーに持つ JSON。`inbox/.ready` を書き、`{"ok": true, "prompt": "..."}` を返します |
 
 ## テスト
 
