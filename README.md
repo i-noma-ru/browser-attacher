@@ -1,21 +1,39 @@
 # browser-attacher
 
 A small local web page for passing files to a Claude Code session. Drop files onto the page, click GO, and the server saves them under `inbox/` in your project and writes a one-line prompt to `inbox/.ready`. A listener loop in the Claude Code session reads that file, and Claude starts working on what you dropped.
+Many terminals cannot take a dropped file or a pasted image, so this page takes them instead and tells Claude where they were saved.
 
 日本語の説明は [README.ja.md](README.ja.md) にあります。The web interface and its messages are in Japanese.
 
-- Single-file server using Node.js built-in modules only. No npm packages, no external assets.
+## When to use
+
+- When your terminal does not support drag-and-drop or pasted images.
+- When you want to pass several files (photos, a PDF, a PPTX) to Claude with a single instruction.
+- When you want the instruction to Claude written for you: a mode such as "summarize" puts a ready-made prompt in `.ready`, so you only drop and click GO.
+
+Not for you if you need to reach the page from another machine (it binds to `127.0.0.1` only and has no authentication), or if you need Windows support that is covered by tests (the Windows code path in `start.js` and `stop.js` is not tested here).
+
+## What it looks like
+
+Drop `p1.jpg` and `p2.jpg`, keep the default mode, and click **GO**. The page shows the result and the prompt it wrote:
+
+```
+保存 2 件 / .ready を書きました。
+
+【添付】 画像: inbox/images/ (p1.jpg, p2.jpg) / 上記のファイルを受け取りました。…
+```
+
+The listener in the Claude Code session prints that same prompt, and Claude starts working on the files in `inbox/images/`.
+
+## Requirements
+
+- Node.js 18 or later. The server is a single file using Node.js built-in modules only: no npm packages, no external assets.
+- Developed and used on macOS. `start.js` and `stop.js` include a Windows code path that is not covered by tests in this repository.
 - Binds to `127.0.0.1` only. There is no authentication; do not expose the port.
-- Useful when your terminal does not support drag-and-drop or pasted images, or when you want to pass multiple files with a single instruction.
 
-## Status
+## Install
 
-- Developed and used on macOS with Node.js 18 or later. `start.js` and `stop.js` include a Windows code path that is not covered by tests in this repository.
-- Originally created as a VS Code extension by the same author, then rewritten as this browser version.
-
-## Run
-
-From the project folder where Claude Code is running:
+Nothing to install beyond Node.js. From the project folder where Claude Code is running:
 
 ```sh
 node /path/to/browser-attacher/start.js
@@ -106,6 +124,7 @@ The tests start a real server on an available local port in a temporary folder. 
 
 ## Notes
 
+- Originally created as a VS Code extension by the same author, then rewritten as this browser version.
 - Written with AI coding assistance (Claude Code, Gemini).
 
 ## License
